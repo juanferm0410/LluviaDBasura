@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recolector de Agua</title>
+    <style>
+        /* Estilos generales */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e0f7fa;
+            color: #004d40;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        #scoreboard {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            font-size: 1.2em;
+        }
+
+        #game-area {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background-color: #b2ebf2;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #collector {
+            position: absolute;
+            bottom: 10px;
+            width: 80px;
+            height: 80px;
+            background-color: #00796b;
+            border-radius: 10px;
+            left: 50%;
+            transform: translateX(3%);
+            transition: transform 0.2s ease-in-out;
+        }
+
+        .drop {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background-color: #0288d1;
+            border-radius: 50%;
+            animation: fall 3s linear infinite;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            color: #fff;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #00796b;
+            border: none;
+            color: #fff;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #004d40;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(500px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>Recolector de Agua</h1>
+        <div id="scoreboard">
+            <span id="score">Puntos: 0</span>
+            <span id="lives">Vidas: 3</span>
+        </div>
+        <div id="game-area">
+            <div id="collector"></div>
+        </div>
+        <div id="game-over" class="hidden">
+            <h1>¡Juego Terminado!</h1>
+            <p>Puntuación Final: <span id="final-score"></span></p>
+            <button id="restart-btn">Reiniciar</button>
+        </div>
+    </div>
+
+    <script>
+        // Variables globales
+        const gameArea = document.getElementById('game-area');
+        const collector = document.getElementById('collector');
+        const scoreDisplay = document.getElementById('score');
+        const livesDisplay = document.getElementById('lives');
+        const gameOverScreen = document.getElementById('game-over');
+        const finalScore = document.getElementById('final-score');
+        const restartButton = document.getElementById('restart-btn');
+
+        let score = 0;
+        let lives = 3;
+        let dropCreateInterval;
+        let flag = 0;
+
+        // Mover el recolector
+        gameArea.addEventListener('mousemove', moveCollector);
+        gameArea.addEventListener('touchmove', (e) => {
+            moveCollector(e.touches[0]);
+        });
+
+        function moveCollector(e) {
+            const gameAreaRect = gameArea.getBoundingClientRect();
+            const xPos = e.clientX - gameAreaRect.left - (collector.offsetWidth / 2);
+            
+            if (xPos >= 0 && xPos <= gameAreaRect.width - collector.offsetWidth) {
+                collector.style.left = `${xPos}px`;
+            }
+        }
+
+        // Crear gotas de agua
+        function createDrop() {
+            const drop = document.createElement('div');
+            drop.classList.add('drop');
+            drop.style.left = `${Math.random() * (gameArea.offsetWidth - 30)}px`;
+            gameArea.appendChild(drop);
+            
+            drop.addEventListener('animationend', () => {
+                drop.remove();
+            });
+
+            // Comprobar colisión con el recolector
+            const fallInterval = setInterval(() => {
+                const dropRect = drop.getBoundingClientRect();
+                const collectorRect = collector.getBoundingClientRect();
+
+                if (checkCollision(dropRect, collectorRect)) {
+                    score++;
+                    scoreDisplay.textContent = `Puntos: ${score}`;
+                    drop.collected = true;
+                    drop.remove();
+                    clearInterval(fallInterval);
+                } else if (dropRect.bottom >= gameArea.getBoundingClientRect().bottom && flag === 0) {
+                    // Si la gota cae al suelo, perder una vida
+                    lives--;
+                    livesDisplay.textContent = `Vidas: ${lives}`;
+                    drop.remove();
+                    clearInterval(fallInterval);
+
+                    if (lives <= 0) {
+                        flag = 1;
+                        endGame();
+                    }
+                }
+            }, 50);
+        }
+
+        // Verificar colisiones
+        function checkCollision(drop, collector) {
+            return !(
+                drop.bottom < collector.top ||
+                drop.top > collector.bottom ||
+                drop.right < collector.left ||
+                drop.left > collector.right
+            );
+        }
+
+        // Iniciar el juego
+        function startGame() {
+            score = 0;
+            lives = 3;
+            flag = 0;
+            scoreDisplay.textContent = `Puntos: ${score}`;
+            livesDisplay.textContent = `Vidas: ${lives}`;
+            gameOverScreen.classList.add('hidden');
+
+            dropCreateInterval = setInterval(createDrop, 1000);
+        }
+
+        // Terminar el juego
+        function endGame() {
+            clearInterval(dropCreateInterval);
+            removeAllDrops();
+            gameOverScreen.classList.remove('hidden');
+            finalScore.textContent = score;
+        }
+
+        // Remover todas las gotas de agua cuando el juego termina
+        function removeAllDrops() {
+            const drops = document.querySelectorAll('.drop');
+            drops.forEach(drop => drop.remove());
+        }
+
+        // Reiniciar el juego
+        restartButton.addEventListener('click', () => {
+            gameOverScreen.classList.add('hidden');
+            startGame();
+        });
+
+        // Iniciar el juego cuando todo el contenido de la página esté cargado
+        window.onload = () => {
+            startGame();
+        };
+    </script>
+</body>
+</html>
