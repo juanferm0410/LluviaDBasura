@@ -3,9 +3,8 @@
 <p align="center">
 <img src="(https://github.com/user-attachments/assets/f20bd50d-8bac-4002-a77e-6f1e56c56fda)">
 </p>
- <a href=index.html>Ir al inicio de este artículo</a>
 
-//* Demo: [Lluvia de Basura](index.html).run
+* Demo: [Lluvia de Basura]((https://shr099.github.io))
 
 ## Description
 
